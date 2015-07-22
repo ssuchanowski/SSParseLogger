@@ -1,11 +1,3 @@
-//
-//  SSParseLogger.m
-//  iDoc24 Answers
-//
-//  Created by Sebastian Suchanowski on 22/10/14.
-//  Copyright (c) 2014 iDoc24. All rights reserved.
-//
-
 #import "SSParseLogger.h"
 #import "ParseLog.h"
 
@@ -24,12 +16,12 @@ static NSString *kLoggerSeverityRefreshDate = @"kLoggerSeverityRefreshDate";
     dispatch_once(&onceToken, ^{
         _sharedInstance = [[SSParseLogger alloc] init];
         _sharedInstance.severityDict = @{
-                                         @"Error": @1,
-                                         @"Warning": @2,
-                                         @"Info": @4,
-                                         @"Debug": @8,
-                                         @"Verbose": @16,
-                                         };
+                @"Error" : @1,
+                @"Warning" : @2,
+                @"Info" : @4,
+                @"Debug" : @8,
+                @"Verbose" : @16,
+        };
         [Parse setApplicationId:kParseAppId
                       clientKey:kParseClientKey];
     });
@@ -38,34 +30,34 @@ static NSString *kLoggerSeverityRefreshDate = @"kLoggerSeverityRefreshDate";
 
 - (void)logMessage:(DDLogMessage *)logMessage {
     [self getSeverityValueFromCofig:^(NSString *severity) {
-        if (logMessage->logFlag <= [self flagForSeverity:severity]) {
+        if (logMessage.flag <= [self flagForSeverity:severity]) {
             ParseLog *log = [ParseLog object];
-            log.context = logMessage->logMsg;
+            log.context = logMessage.message;
             log.date = [NSDate date];
-            log.function = [NSString stringWithUTF8String:logMessage->function];
-            log.lineNumber = @(logMessage->lineNumber);
+            log.function = logMessage.function;
+            log.lineNumber = @(logMessage.line);
             log.deviceName = [UIDevice currentDevice].name;
             log.osVersion = [UIDevice currentDevice].systemVersion;
-            log.appVersion = [[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"];
-            log.severity = [self severityForFlag:logMessage->logFlag];
-            
+            log.appVersion = [[NSBundle mainBundle] infoDictionary][@"CFBundleShortVersionString"];
+            log.severity = [self severityForFlag:logMessage.flag];
+
             if ([PFUser currentUser]) {
                 log.user = [PFUser currentUser];
                 log.username = [PFUser currentUser].username;
             }
-            
+
             [log saveEventually];
         }
     }];
-    
+#pragma clang diagnostic pop
 }
 
 - (NSString *)severityForFlag:(NSInteger)flag {
-    return [self.severityDict allKeysForObject:@(flag)].firstObject ? : @"Unknown";
+    return [self.severityDict allKeysForObject:@(flag)].firstObject ?: @"Unknown";
 }
 
-- (NSInteger)flagForSeverity:(NSString *)severity {
-    return [self.severityDict[severity] integerValue] ? : 16;
+- (DDLogFlag)flagForSeverity:(NSString *)severity {
+    return (enum DDLogFlag) [self.severityDict[severity] integerValue] ?: DDLogFlagVerbose;
 }
 
 - (BOOL)shouldGetConfig {
@@ -77,7 +69,7 @@ static NSString *kLoggerSeverityRefreshDate = @"kLoggerSeverityRefreshDate";
     } else {
         return YES;
     }
-    
+
     return NO;
 }
 
